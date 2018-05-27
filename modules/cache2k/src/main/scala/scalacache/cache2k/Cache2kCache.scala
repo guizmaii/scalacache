@@ -1,5 +1,6 @@
 package scalacache.cache2k
 
+import akka.util.{ByteString, CompactByteString}
 import org.cache2k.{Cache => CCache}
 import org.slf4j.LoggerFactory
 import scalacache.serialization.Codec
@@ -14,7 +15,8 @@ import scala.language.higherKinds
   *
   * This cache implementation is synchronous.
   */
-final class Cache2kCache[F[_]](underlying: CCache[String, Array[Byte]])(implicit val config: CacheConfig, mode: Mode[F])
+final class Cache2kCache[F[_]](underlying: CCache[String, CompactByteString])(implicit val config: CacheConfig,
+                                                                              mode: Mode[F])
     extends AbstractCache[F] {
 
   override protected final val logger = LoggerFactory.getLogger(getClass.getName)
@@ -31,7 +33,7 @@ final class Cache2kCache[F[_]](underlying: CCache[String, Array[Byte]])(implicit
     @inline def toExpiryTime(ttl: Duration): Long = System.currentTimeMillis + ttl.toMillis
 
     mode.M.delay {
-      underlying.put(key, codec.encode(value))
+      underlying.put(key, codec.encode(value).compact)
       ttl.foreach(x => underlying.expireAt(key, toExpiryTime(x)))
       logCachePut(key, ttl)
     }
@@ -50,7 +52,7 @@ object Cache2kCache {
     *
     * @param underlying a cache2k cache configured with a ExpiryPolicy or Cache2kBuilder.expireAfterWrite(long, TimeUnit)
     */
-  def apply[F[_]: Mode](underlying: CCache[String, Array[Byte]])(implicit config: CacheConfig): Cache2kCache[F] =
+  def apply[F[_]: Mode](underlying: CCache[String, CompactByteString])(implicit config: CacheConfig): Cache2kCache[F] =
     new Cache2kCache(underlying)
 
 }

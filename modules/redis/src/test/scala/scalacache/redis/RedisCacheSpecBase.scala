@@ -2,6 +2,7 @@ package scalacache.redis
 
 import java.nio.charset.StandardCharsets
 
+import akka.util.ByteString
 import org.scalatest.concurrent.{Eventually, IntegrationPatience, ScalaFutures}
 import org.scalatest.time.{Seconds, Span}
 import org.scalatest.{BeforeAndAfter, FlatSpec, Inside, Matchers}
@@ -34,8 +35,8 @@ trait RedisCacheSpecBase
 
   case object AlwaysFailing
   implicit val alwaysFailingCodec: Codec[AlwaysFailing.type] = new Codec[AlwaysFailing.type] {
-    override def encode(value: AlwaysFailing.type): Array[Byte] = Array(0)
-    override def decode(bytes: Array[Byte]): DecodingResult[AlwaysFailing.type] =
+    override def encode(value: AlwaysFailing.type): ByteString = ByteString.empty
+    override def decode(bytes: ByteString): DecodingResult[AlwaysFailing.type] =
       Left(FailedToDecode(new Exception("Failed to decode")))
   }
 
@@ -177,7 +178,7 @@ trait RedisCacheSpecBase
       behavior of "remove"
 
       it should "delete the given key and its value from the underlying cache" in {
-        client.set(bytes("key1"), serialize(123))
+        client.set(bytes("key1"), serialize(123).toArray)
         deserialize[Int](client.get(bytes("key1"))) should be(Right(123))
 
         whenReady(cache.remove("key1")) { _ =>
@@ -189,6 +190,6 @@ trait RedisCacheSpecBase
 
   }
 
-  def bytes(s: String) = s.getBytes(StandardCharsets.UTF_8)
+  def bytes(s: String): Array[Byte] = s.getBytes(StandardCharsets.UTF_8)
 
 }

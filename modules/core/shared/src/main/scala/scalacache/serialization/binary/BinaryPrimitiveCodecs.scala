@@ -1,7 +1,6 @@
 package scalacache.serialization.binary
 
-import java.nio.charset.StandardCharsets
-
+import akka.util.ByteString
 import scalacache.serialization.Codec
 import scalacache.serialization.Codec._
 
@@ -15,15 +14,15 @@ import scala.reflect.ClassTag
 trait BinaryPrimitiveCodecs extends LowPriorityBinaryPrimitiveCodecs {
 
   implicit object IntBinaryCodec extends Codec[Int] {
-    def encode(value: Int): Array[Byte] =
-      Array(
+    override def encode(value: Int): ByteString =
+      ByteString(
         (value >>> 24).asInstanceOf[Byte],
         (value >>> 16).asInstanceOf[Byte],
         (value >>> 8).asInstanceOf[Byte],
         value.asInstanceOf[Byte]
       )
 
-    def decode(data: Array[Byte]): DecodingResult[Int] = tryDecode(
+    override def decode(data: ByteString): DecodingResult[Int] = tryDecode(
       (data(0).asInstanceOf[Int] & 255) << 24 |
         (data(1).asInstanceOf[Int] & 255) << 16 |
         (data(2).asInstanceOf[Int] & 255) << 8 |
@@ -37,12 +36,12 @@ trait LowPriorityBinaryPrimitiveCodecs extends LowerPriorityBinaryAnyRefCodecs {
 
   implicit object DoubleBinaryCodec extends Codec[Double] {
     import java.lang.{Double => JvmDouble}
-    def encode(value: Double): Array[Byte] = {
+    override def encode(value: Double): ByteString = {
       val l = JvmDouble.doubleToLongBits(value)
       LongBinaryCodec.encode(l)
     }
 
-    def decode(data: Array[Byte]): DecodingResult[Double] = {
+    override def decode(data: ByteString): DecodingResult[Double] = {
       LongBinaryCodec
         .decode(data)
         .right
@@ -52,12 +51,12 @@ trait LowPriorityBinaryPrimitiveCodecs extends LowerPriorityBinaryAnyRefCodecs {
 
   implicit object FloatBinaryCodec extends Codec[Float] {
     import java.lang.{Float => JvmFloat}
-    def encode(value: Float): Array[Byte] = {
+    override def encode(value: Float): ByteString = {
       val i = JvmFloat.floatToIntBits(value)
       IntBinaryCodec.encode(i)
     }
 
-    def decode(data: Array[Byte]): DecodingResult[Float] = {
+    override def decode(data: ByteString): DecodingResult[Float] = {
       IntBinaryCodec
         .decode(data)
         .right
@@ -66,8 +65,8 @@ trait LowPriorityBinaryPrimitiveCodecs extends LowerPriorityBinaryAnyRefCodecs {
   }
 
   implicit object LongBinaryCodec extends Codec[Long] {
-    def encode(value: Long): Array[Byte] =
-      Array(
+    override def encode(value: Long): ByteString =
+      ByteString(
         (value >>> 56).asInstanceOf[Byte],
         (value >>> 48).asInstanceOf[Byte],
         (value >>> 40).asInstanceOf[Byte],
@@ -78,7 +77,7 @@ trait LowPriorityBinaryPrimitiveCodecs extends LowerPriorityBinaryAnyRefCodecs {
         value.asInstanceOf[Byte]
       )
 
-    def decode(data: Array[Byte]): DecodingResult[Long] = tryDecode(
+    override def decode(data: ByteString): DecodingResult[Long] = tryDecode(
       (data(0).asInstanceOf[Long] & 255) << 56 |
         (data(1).asInstanceOf[Long] & 255) << 48 |
         (data(2).asInstanceOf[Long] & 255) << 40 |
@@ -91,20 +90,20 @@ trait LowPriorityBinaryPrimitiveCodecs extends LowerPriorityBinaryAnyRefCodecs {
   }
 
   implicit object BooleanBinaryCodec extends Codec[Boolean] {
-    def encode(value: Boolean): Array[Byte] =
-      Array((if (value) 1 else 0).asInstanceOf[Byte])
+    override def encode(value: Boolean): ByteString =
+      ByteString((if (value) 1 else 0).asInstanceOf[Byte])
 
-    def decode(data: Array[Byte]): DecodingResult[Boolean] =
+    override def decode(data: ByteString): DecodingResult[Boolean] =
       tryDecode(data.isDefinedAt(0) && data(0) == 1)
   }
 
   implicit object CharBinaryCodec extends Codec[Char] {
-    def encode(value: Char): Array[Byte] = Array(
+    override def encode(value: Char): ByteString = ByteString(
       (value >>> 8).asInstanceOf[Byte],
       value.asInstanceOf[Byte]
     )
 
-    def decode(data: Array[Byte]): DecodingResult[Char] = tryDecode(
+    override def decode(data: ByteString): DecodingResult[Char] = tryDecode(
       ((data(0).asInstanceOf[Int] & 255) << 8 |
         data(1).asInstanceOf[Int] & 255)
         .asInstanceOf[Char]
@@ -112,12 +111,12 @@ trait LowPriorityBinaryPrimitiveCodecs extends LowerPriorityBinaryAnyRefCodecs {
   }
 
   implicit object ShortBinaryCodec extends Codec[Short] {
-    def encode(value: Short): Array[Byte] = Array(
+    override def encode(value: Short): ByteString = ByteString(
       (value >>> 8).asInstanceOf[Byte],
       value.asInstanceOf[Byte]
     )
 
-    def decode(data: Array[Byte]): DecodingResult[Short] = tryDecode(
+    override def decode(data: ByteString): DecodingResult[Short] = tryDecode(
       ((data(0).asInstanceOf[Short] & 255) << 8 |
         data(1).asInstanceOf[Short] & 255)
         .asInstanceOf[Short]
@@ -125,13 +124,13 @@ trait LowPriorityBinaryPrimitiveCodecs extends LowerPriorityBinaryAnyRefCodecs {
   }
 
   implicit object StringBinaryCodec extends Codec[String] {
-    def encode(value: String): Array[Byte] = value.getBytes(StandardCharsets.UTF_8)
-    def decode(data: Array[Byte]): DecodingResult[String] = tryDecode(new String(data, StandardCharsets.UTF_8))
+    override def encode(value: String): ByteString = ByteString(value)
+    override def decode(data: ByteString): DecodingResult[String] = tryDecode(data.utf8String)
   }
 
   implicit object ArrayByteBinaryCodec extends Codec[Array[Byte]] {
-    def encode(value: Array[Byte]): Array[Byte] = value
-    def decode(data: Array[Byte]): DecodingResult[Array[Byte]] = Right(data)
+    override def encode(value: Array[Byte]): ByteString = ByteString(value)
+    override def decode(data: ByteString): DecodingResult[Array[Byte]] = Right(data.toArray)
   }
 }
 

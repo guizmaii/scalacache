@@ -3,6 +3,7 @@ package scalacache.serialization.gzip
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import java.util.zip.{GZIPInputStream, GZIPOutputStream}
 
+import akka.util.ByteString
 import scalacache.serialization.Codec.DecodingResult
 import scalacache.serialization.{Codec, FailedToDecode}
 
@@ -11,7 +12,7 @@ object CompressingCodec {
   /**
     * Default threshold for compression is is 16k
     */
-  val DefaultSizeThreshold: Int = 16384
+  final val DefaultSizeThreshold: Int = 16384
 
   /**
     * Headers aka magic numbers to let us know if something has been compressed or not
@@ -34,25 +35,25 @@ trait GZippingBinaryCodec[A] extends Codec[A] {
   /**
     * Size above which data will get compressed
     */
-  protected def sizeThreshold: Int = CompressingCodec.DefaultSizeThreshold
+  protected val sizeThreshold: Int = CompressingCodec.DefaultSizeThreshold
 
-  abstract override def encode(value: A): Array[Byte] = {
+  abstract override def encode(value: A): ByteString = {
     val serialised = super.encode(value)
     if (serialised.length > sizeThreshold) {
-      Headers.Gzipped +: compress(serialised)
+      Headers.Gzipped +: ByteString(compress(serialised.toArray))
     } else {
       Headers.Uncompressed +: serialised
     }
   }
 
-  abstract override def decode(data: Array[Byte]): DecodingResult[A] = {
+  abstract override def decode(data: ByteString): DecodingResult[A] = {
     val firstByte = data.headOption
     firstByte match {
       case Some(Headers.Uncompressed) =>
         super.decode(data.tail)
       case Some(Headers.Gzipped) =>
-        val bytes = Codec.tryDecode(decompress(data))
-        bytes.right.flatMap(super.decode)
+        val decodeResult = Codec.tryDecode(decompress(data.toArray))
+        decodeResult.right.flatMap(bytes => super.decode(ByteString(bytes)))
       case unexpected =>
         Left(
           FailedToDecode(
@@ -61,7 +62,7 @@ trait GZippingBinaryCodec[A] extends Codec[A] {
   }
 
   // Port of compress in SpyMemcached
-  private def compress(data: Array[Byte]): Array[Byte] = {
+  private final def compress(data: Array[Byte]): Array[Byte] = {
     val byteOutputStream = new ByteArrayOutputStream()
     val gzipOutputStream = new GZIPOutputStream(byteOutputStream)
     try {
@@ -74,7 +75,7 @@ trait GZippingBinaryCodec[A] extends Codec[A] {
   }
 
   // Port of decompress in SpyMemcached
-  private def decompress(data: Array[Byte]): Array[Byte] = {
+  private final def decompress(data: Array[Byte]): Array[Byte] = {
     val bis = new ByteArrayInputStream(data, 1, data.length - 1)
     val gis = new GZIPInputStream(bis)
     val bos = new ByteArrayOutputStream

@@ -1,7 +1,10 @@
 package scalacache.serialization
 
+import akka.util.{ByteString, CompactByteString}
+
 import scala.annotation.implicitNotFound
 import scala.language.implicitConversions
+import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -23,8 +26,8 @@ You will need a dependency on the scalacache-circe module.
 
 See the documentation for more details on codecs.""")
 trait Codec[A] {
-  def encode(value: A): Array[Byte]
-  def decode(bytes: Array[Byte]): Codec.DecodingResult[A]
+  def encode(value: A): ByteString
+  def decode(bytes: ByteString): Codec.DecodingResult[A]
 }
 
 /**
@@ -39,9 +42,9 @@ object Codec {
   }
 
   def tryDecode[A](f: => A): DecodingResult[A] =
-    Try(f) match {
-      case Success(a) => Right(a)
-      case Failure(e) => Left(FailedToDecode(e))
+    try Right(f)
+    catch {
+      case NonFatal(e) => Left(FailedToDecode(e))
     }
 
 }
