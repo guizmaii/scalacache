@@ -1,12 +1,13 @@
 package scalacache
 
-import java.nio.charset.StandardCharsets
 import java.time.{Clock, Instant}
+
+import akka.util.ByteString
 
 /**
   * A cache entry with an optional expiry time
   */
-final case class Entry(value: Array[Byte], expiresAt: Option[Instant]) {
+final case class Entry(value: ByteString, expiresAt: Option[Instant]) {
 
   /**
     * Has the entry expired yet?
@@ -17,5 +18,5 @@ final case class Entry(value: Array[Byte], expiresAt: Option[Instant]) {
 
 object Entry {
   def apply(value: String, expiresAt: Option[Instant]): Entry =
-    new Entry(value.getBytes(StandardCharsets.UTF_8), expiresAt)
+    new Entry(ByteString(value), expiresAt)
 }

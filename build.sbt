@@ -52,7 +52,8 @@ lazy val core =
     .settings(
       moduleName := "scalacache-core",
       libraryDependencies ++= Seq(
-        "org.scala-lang" % "scala-reflect" % scalaVersion.value
+        "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+        "com.typesafe.akka" %% "akka-actor" % "2.5.12"
       ) ++ scalacheck,
       scala211OnlyDeps(
         "org.squeryl" %% "squeryl" % "0.9.9" % Test,

@@ -1,5 +1,6 @@
 package scalacache.redis
 
+import akka.util.ByteString
 import scalacache.serialization.Codec
 
 /**
@@ -10,9 +11,9 @@ import scalacache.serialization.Codec
 trait RedisSerialization {
 
   def serialize[A](value: A)(implicit codec: Codec[A]): Array[Byte] =
-    codec.encode(value)
+    codec.encode(value).toArray
 
   def deserialize[A](bytes: Array[Byte])(implicit codec: Codec[A]): Codec.DecodingResult[A] =
-    codec.decode(bytes)
+    codec.decode(ByteString(bytes))
 
 }

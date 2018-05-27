@@ -2,6 +2,7 @@ package scalacache.serialization.binary
 
 import java.io._
 
+import akka.util.ByteString
 import scalacache.serialization.Codec.DecodingResult
 import scalacache.serialization.{Codec, GenericCodecObjectInputStream}
 
@@ -22,18 +23,18 @@ class JavaSerializationAnyRefCodec[S <: Serializable](classTag: ClassTag[S]) ext
       case NonFatal(_) => // does nothing
     }
 
-  def encode(value: S): Array[Byte] =
+  def encode(value: S): ByteString =
     using(new ByteArrayOutputStream()) { buf =>
       using(new ObjectOutputStream(buf)) { out =>
         out.writeObject(value)
         out.close()
-        buf.toByteArray
+        ByteString(buf.toByteArray)
       }
     }
 
-  def decode(data: Array[Byte]): DecodingResult[S] =
+  def decode(data: ByteString): DecodingResult[S] =
     Codec.tryDecode {
-      using(new ByteArrayInputStream(data)) { buf =>
+      using(new ByteArrayInputStream(data.toArray)) { buf =>
         val in = new GenericCodecObjectInputStream(classTag, buf)
         using(in) { inp =>
           inp.readObject().asInstanceOf[S]

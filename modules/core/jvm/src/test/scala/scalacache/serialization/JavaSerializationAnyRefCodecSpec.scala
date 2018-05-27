@@ -1,6 +1,7 @@
 package scalacache.serialization
 
-import org.scalatest.{Matchers, FlatSpec}
+import akka.util.ByteString
+import org.scalatest.{FlatSpec, Matchers}
 
 class JavaSerializationAnyRefCodecSpec extends FlatSpec with Matchers {
 
@@ -14,7 +15,7 @@ class JavaSerializationAnyRefCodecSpec extends FlatSpec with Matchers {
   }
 
   it should "return a Left if the bytes cannot be deserialised to a case class" in {
-    val invalidBytes = Array[Byte](1, 2, 3, 4)
+    val invalidBytes = ByteString(Array[Byte](1, 2, 3, 4))
     val phoneCodec = implicitly[Codec[Phone]]
     phoneCodec.decode(invalidBytes) shouldBe 'left
   }
