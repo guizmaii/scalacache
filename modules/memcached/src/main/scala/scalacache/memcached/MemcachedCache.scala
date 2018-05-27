@@ -35,7 +35,7 @@ class MemcachedCache[F[_]](client: MemcachedClient, keySanitizer: MemcachedKeySa
           if (g.getStatus.isSuccess) {
             try {
               val bytes = g.get()
-              val value = codec.decode(ByteString(bytes.asInstanceOf[Array[Byte]])).right.map(Some(_))
+              val value = codec.decode(bytes.asInstanceOf[ByteString]).right.map(Some(_))
               cb(value)
             } catch {
               case NonFatal(e) => cb(Left(e))
